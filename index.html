@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>مستخرج الصوت من الفيديو</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>فصل الصوت عن الفيديو</h1>
+      <p>ارفع ملف الفيديو لاستخراج الصوت مباشرة على جهازك بدون إرسال ملفاتك لأي خادم.</p>
+    </header>
+
+    <section class="card">
+      <label for="videoInput" class="drop-zone" id="dropZone">
+        <input type="file" id="videoInput" accept="video/*" hidden />
+        <div class="drop-content">
+          <span class="icon">🎬</span>
+          <strong id="fileName">اضغط لاختيار فيديو أو اسحبه هنا</strong>
+          <small>يدعم MP4, MOV, MKV, WEBM وغيرها</small>
+        </div>
+      </label>
+
+      <div class="controls">
+        <div class="control-group">
+          <label for="formatSelect">صيغة الصوت الناتجة:</label>
+          <select id="formatSelect">
+            <option value="wav" selected>WAV (سريع ومباشر بدون مكتبات خارجية)</option>
+            <option value="mp3">MP3 (مضغوط - يستخدم معالجة المتصفح)</option>
+          </select>
+        </div>
+
+        <button id="extractBtn" class="btn primary" disabled>فصل الصوت الآن</button>
+      </div>
+
+      <div id="statusBox" class="status hidden">
+        <div class="progress-bar">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <p id="statusText">جاري المعالجة...</p>
+      </div>
+
+      <div id="resultBox" class="result hidden">
+        <h3>تم استخراج الصوت بنجاح</h3>
+        <audio id="audioPreview" controls></audio>
+        <a id="downloadLink" class="btn success" download="extracted-audio.wav">تحميل ملف الصوت</a>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>تعمل المعالجة محلياً داخل المتصفح لحماية خصوصيتك وسرعة الأداء.</p>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
