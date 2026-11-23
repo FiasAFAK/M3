@@ -5,173 +5,32 @@ const formatSelect = document.getElementById("formatSelect");
 const extractBtn = document.getElementById("extractBtn");
 const statusBox = document.getElementById("statusBox");
 const progressFill = document.getElementById("progressFill");
-const pctText = document.getElementById("pctText");
 const statusText = document.getElementById("statusText");
 const resultBox = document.getElementById("resultBox");
-const resultMeta = document.getElementById("resultMeta");
 const audioPreview = document.getElementById("audioPreview");
 const downloadLink = document.getElementById("downloadLink");
 
-// عناصر قص الصوت
-const trimBox = document.getElementById("trimBox");
-const trimDurationLabel = document.getElementById("trimDurationLabel");
-const startRange = document.getElementById("startRange");
-const endRange = document.getElementById("endRange");
-const startVal = document.getElementById("startVal");
-const endVal = document.getElementById("endVal");
-const startInput = document.getElementById("startInput");
-const endInput = document.getElementById("endInput");
-const previewTrimBtn = document.getElementById("previewTrimBtn");
-const resetTrimBtn = document.getElementById("resetTrimBtn");
-const trimPreviewAudio = document.getElementById("trimPreviewAudio");
-
-// عناصر المشغّل المخصص للنتيجة
-const playerEl = document.getElementById("player");
-const playBtn = document.getElementById("playBtn");
-const icoPlay = document.getElementById("icoPlay");
-const icoPause = document.getElementById("icoPause");
-const seekInput = document.getElementById("seek");
-const tNowEl = document.getElementById("tNow");
-const tAllEl = document.getElementById("tAll");
-
-// عناصر تثبيت التطبيق على الجوال (PWA)
-const installBtn = document.getElementById("installBtn");
-const installHint = document.getElementById("installHint");
-let deferredInstallPrompt = null;
-
 let selectedFile = null;
 let currentAudioUrl = null;
-let trimPreviewUrl = null;
-let mediaDuration = 0;
-let trimStartSec = 0;
-let trimEndSec = 0;
-
-function formatTimeDetailed(sec) {
-  if (!isFinite(sec) || sec < 0) return "00:00.0";
-  const mins = Math.floor(sec / 60);
-  const rem = sec % 60;
-  const wholeSec = Math.floor(rem);
-  const tenths = Math.floor((rem - wholeSec) * 10);
-  return `${String(mins).padStart(2, "0")}:${String(wholeSec).padStart(2, "0")}.${tenths}`;
-}
-
-function formatClock(sec) {
-  if (!isFinite(sec) || sec < 0) return "0:00";
-  const w = Math.floor(sec);
-  const m = Math.floor(w / 60);
-  const s = w % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function parseTimeInput(str) {
-  if (!str) return NaN;
-  const clean = str.trim().replace(",", ".");
-  if (clean.includes(":")) {
-    const parts = clean.split(":");
-    if (parts.length === 2) {
-      const mins = Number(parts[0]);
-      const secs = Number(parts[1]);
-      if (isFinite(mins) && isFinite(secs) && mins >= 0 && secs >= 0) {
-        return mins * 60 + secs;
-      }
-    }
-    return NaN;
-  }
-  const num = Number(clean);
-  return isFinite(num) && num >= 0 ? num : NaN;
-}
 
 function setProgress(percent, text) {
-  const clamped = Math.max(0, Math.min(100, Math.round(percent)));
   statusBox.classList.remove("hidden");
-  progressFill.style.width = `${clamped}%`;
-  pctText.textContent = `${clamped}%`;
+  progressFill.style.width = `${percent}%`;
   statusText.textContent = text;
 }
 
-function updateTrimUI(syncInputs = true) {
-  if (!mediaDuration || mediaDuration <= 0) {
-    trimBox.classList.add("hidden");
-    return;
-  }
-  trimBox.classList.remove("hidden");
-
-  trimStartSec = Math.max(0, Math.min(trimStartSec, Math.max(0, mediaDuration - 0.1)));
-  trimEndSec = Math.max(trimStartSec + 0.1, Math.min(trimEndSec, mediaDuration));
-
-  startRange.max = mediaDuration.toFixed(2);
-  endRange.max = mediaDuration.toFixed(2);
-  startRange.value = trimStartSec.toFixed(2);
-  endRange.value = trimEndSec.toFixed(2);
-
-  startVal.textContent = formatTimeDetailed(trimStartSec);
-  endVal.textContent = formatTimeDetailed(trimEndSec);
-
-  if (syncInputs) {
-    startInput.value = formatTimeDetailed(trimStartSec);
-    endInput.value = formatTimeDetailed(trimEndSec);
-  }
-
-  const cutLen = Math.max(0.1, trimEndSec - trimStartSec);
-  const isFull = trimStartSec <= 0.05 && trimEndSec >= mediaDuration - 0.05;
-  trimDurationLabel.textContent = isFull
-    ? `المدة المحددة: كامل المقطع (${formatTimeDetailed(cutLen)})`
-    : `المقطع المقصوص: ${formatTimeDetailed(cutLen)}`;
-}
-
-async function detectMediaDuration(file) {
-  return new Promise((resolve) => {
-    const tempUrl = URL.createObjectURL(file);
-    const v = document.createElement("video");
-    v.preload = "metadata";
-    v.muted = true;
-    v.playsInline = true;
-
-    const cleanup = () => {
-      v.removeAttribute("src");
-      v.load();
-      URL.revokeObjectURL(tempUrl);
-    };
-
-    v.onloadedmetadata = () => {
-      const dur = isFinite(v.duration) && v.duration > 0 ? v.duration : 0;
-      cleanup();
-      resolve(dur);
-    };
-
-    v.onerror = () => {
-      cleanup();
-      resolve(0);
-    };
-
-    v.src = tempUrl;
-  });
-}
-
-async function handleFileSelection(file) {
+function handleFileSelection(file) {
   if (!file) return;
   if (!file.type.startsWith("video/") && !file.name.match(/\.(mp4|mov|mkv|avi|webm|m4v)$/i)) {
     alert("يرجى اختيار ملف فيديو صالح.");
     return;
   }
-
   selectedFile = file;
   const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
   fileNameEl.textContent = `${file.name} (${sizeMB} MB)`;
   extractBtn.disabled = false;
   resultBox.classList.add("hidden");
   statusBox.classList.add("hidden");
-  trimPreviewAudio.classList.add("hidden");
-  trimPreviewAudio.pause();
-
-  mediaDuration = await detectMediaDuration(file);
-  if (mediaDuration > 0) {
-    trimStartSec = 0;
-    trimEndSec = mediaDuration;
-    updateTrimUI(true);
-  } else {
-    trimBox.classList.add("hidden");
-  }
 }
 
 videoInput.addEventListener("change", (e) => {
@@ -194,67 +53,6 @@ dropZone.addEventListener("drop", (e) => {
     handleFileSelection(e.dataTransfer.files[0]);
   }
 });
-
-// أحداث أشرطة ومربعات القص
-startRange.addEventListener("input", () => {
-  const val = Number(startRange.value);
-  trimStartSec = Math.min(val, trimEndSec - 0.1);
-  updateTrimUI(true);
-});
-
-endRange.addEventListener("input", () => {
-  const val = Number(endRange.value);
-  trimEndSec = Math.max(val, trimStartSec + 0.1);
-  updateTrimUI(true);
-});
-
-startInput.addEventListener("change", () => {
-  const parsed = parseTimeInput(startInput.value);
-  if (!isNaN(parsed)) {
-    trimStartSec = Math.max(0, Math.min(parsed, trimEndSec - 0.1));
-  }
-  updateTrimUI(true);
-});
-
-endInput.addEventListener("change", () => {
-  const parsed = parseTimeInput(endInput.value);
-  if (!isNaN(parsed)) {
-    trimEndSec = Math.max(trimStartSec + 0.1, Math.min(parsed, mediaDuration));
-  }
-  updateTrimUI(true);
-});
-
-resetTrimBtn.addEventListener("click", () => {
-  if (!mediaDuration) return;
-  trimStartSec = 0;
-  trimEndSec = mediaDuration;
-  trimPreviewAudio.classList.add("hidden");
-  trimPreviewAudio.pause();
-  updateTrimUI(true);
-});
-
-// قص AudioBuffer إلى المقطع المحدد (startSec إلى endSec)
-function sliceAudioBuffer(audioBuffer, startSec, endSec) {
-  const sampleRate = audioBuffer.sampleRate;
-  const startSample = Math.max(0, Math.min(audioBuffer.length - 1, Math.floor(startSec * sampleRate)));
-  const endSample = Math.max(startSample + 1, Math.min(audioBuffer.length, Math.floor(endSec * sampleRate)));
-  const frameCount = endSample - startSample;
-
-  const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  const tempCtx = new AudioCtx();
-  const sliced = tempCtx.createBuffer(audioBuffer.numberOfChannels, frameCount, sampleRate);
-
-  for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
-    const srcData = audioBuffer.getChannelData(ch);
-    const dstData = sliced.getChannelData(ch);
-    dstData.set(srcData.subarray(startSample, endSample));
-  }
-
-  if (typeof tempCtx.close === "function") {
-    tempCtx.close().catch(() => {});
-  }
-  return sliced;
-}
 
 // تحويل AudioBuffer إلى ملف WAV قياسي بدون الحاجة لأي مكتبات خارجية
 function audioBufferToWav(buffer) {
@@ -376,74 +174,33 @@ async function audioBufferToMp3(buffer, onProgress) {
   return new Blob(mp3Data, { type: "audio/mp3" });
 }
 
-async function decodeSelectedFileToAudioBuffer() {
-  const arrayBuffer = await selectedFile.arrayBuffer();
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  const audioCtx = new AudioContextClass();
-  try {
-    return await audioCtx.decodeAudioData(arrayBuffer);
-  } finally {
-    if (typeof audioCtx.close === "function") {
-      audioCtx.close().catch(() => {});
-    }
-  }
-}
-
-previewTrimBtn.addEventListener("click", async () => {
-  if (!selectedFile) return;
-  previewTrimBtn.disabled = true;
-  try {
-    setProgress(25, "جاري تجهيز معاينة المقطع المقصوص...");
-    const fullBuffer = await decodeSelectedFileToAudioBuffer();
-    const effectiveEnd = trimEndSec > trimStartSec ? trimEndSec : fullBuffer.duration;
-    const slicedBuffer = sliceAudioBuffer(fullBuffer, trimStartSec, effectiveEnd);
-    const wavBlob = audioBufferToWav(slicedBuffer);
-
-    if (trimPreviewUrl) {
-      URL.revokeObjectURL(trimPreviewUrl);
-    }
-    trimPreviewUrl = URL.createObjectURL(wavBlob);
-    trimPreviewAudio.src = trimPreviewUrl;
-    trimPreviewAudio.classList.remove("hidden");
-    setProgress(100, "المعاينة جاهزة للاستماع.");
-    trimPreviewAudio.play().catch(() => {});
-  } catch (err) {
-    console.error(err);
-    setProgress(0, "تعذر معاينة المقطع. تأكد أن الفيديو يحتوي على مسار صوتي مدعوم.");
-  } finally {
-    previewTrimBtn.disabled = false;
-  }
-});
-
 extractBtn.addEventListener("click", async () => {
   if (!selectedFile) return;
 
   extractBtn.disabled = true;
   resultBox.classList.add("hidden");
-  audioPreview.pause();
 
   try {
     setProgress(15, "جاري قراءة ملف الفيديو...");
-    const fullBuffer = await decodeSelectedFileToAudioBuffer();
+    const arrayBuffer = await selectedFile.arrayBuffer();
 
-    setProgress(45, "جاري فك تشفير وقص المسار الصوتي...");
-    const hasTrim = mediaDuration > 0 && (trimStartSec > 0.05 || trimEndSec < mediaDuration - 0.05);
-    const finalBuffer = hasTrim
-      ? sliceAudioBuffer(fullBuffer, trimStartSec, Math.min(trimEndSec, fullBuffer.duration))
-      : fullBuffer;
+    setProgress(40, "جاري فك تشفير المسار الصوتي...");
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContextClass();
+    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 
     const chosenFormat = formatSelect.value;
     let audioBlob;
 
     if (chosenFormat === "mp3") {
       setProgress(60, "جاري تحويل الصوت إلى MP3...");
-      audioBlob = await audioBufferToMp3(finalBuffer, (pct) => {
+      audioBlob = await audioBufferToMp3(audioBuffer, (pct) => {
         const mapped = 60 + Math.round(pct * 0.35);
         setProgress(mapped, `جاري ضغط MP3... (${pct}%)`);
       });
     } else {
       setProgress(75, "جاري تجهيز ملف WAV...");
-      audioBlob = audioBufferToWav(finalBuffer);
+      audioBlob = audioBufferToWav(audioBuffer);
     }
 
     if (currentAudioUrl) {
@@ -452,17 +209,11 @@ extractBtn.addEventListener("click", async () => {
     currentAudioUrl = URL.createObjectURL(audioBlob);
 
     const baseName = selectedFile.name.replace(/\.[^/.]+$/, "");
-    const suffix = hasTrim ? `-cut-${Math.floor(trimStartSec)}s-to-${Math.ceil(trimEndSec)}s` : "-audio";
-    const outName = `${baseName}${suffix}.${chosenFormat}`;
+    const outName = `${baseName}-audio.${chosenFormat}`;
 
     audioPreview.src = currentAudioUrl;
     downloadLink.href = currentAudioUrl;
     downloadLink.download = outName;
-
-    const sizeKB = (audioBlob.size / 1024).toFixed(0);
-    const sizeMB = (audioBlob.size / (1024 * 1024)).toFixed(2);
-    const sizeLabel = audioBlob.size >= 1048576 ? `${sizeMB} MB` : `${sizeKB} KB`;
-    resultMeta.textContent = `الصيغة: ${chosenFormat.toUpperCase()} · الحجم: ${sizeLabel} · المدة: ${formatTimeDetailed(finalBuffer.duration)}`;
 
     setProgress(100, "اكتملت العملية!");
     resultBox.classList.remove("hidden");
@@ -473,72 +224,3 @@ extractBtn.addEventListener("click", async () => {
     extractBtn.disabled = false;
   }
 });
-
-// تحكم المشغّل المخصص للنتيجة
-function setPlayingState(isPlaying) {
-  playerEl.classList.toggle("playing", isPlaying);
-  icoPlay.hidden = isPlaying;
-  icoPause.hidden = !isPlaying;
-  playBtn.setAttribute("aria-label", isPlaying ? "إيقاف الاستماع" : "تشغيل الصوت");
-}
-
-playBtn.addEventListener("click", () => {
-  if (!audioPreview.src) return;
-  if (audioPreview.paused) {
-    audioPreview.play().catch(() => {});
-  } else {
-    audioPreview.pause();
-  }
-});
-
-audioPreview.addEventListener("play", () => setPlayingState(true));
-audioPreview.addEventListener("pause", () => setPlayingState(false));
-audioPreview.addEventListener("ended", () => setPlayingState(false));
-
-audioPreview.addEventListener("loadedmetadata", () => {
-  const dur = isFinite(audioPreview.duration) ? audioPreview.duration : 0;
-  seekInput.max = dur;
-  tAllEl.textContent = formatClock(dur);
-});
-
-audioPreview.addEventListener("timeupdate", () => {
-  seekInput.value = audioPreview.currentTime;
-  tNowEl.textContent = formatClock(audioPreview.currentTime);
-});
-
-seekInput.addEventListener("input", () => {
-  audioPreview.currentTime = Number(seekInput.value);
-  tNowEl.textContent = formatClock(audioPreview.currentTime);
-});
-
-// ميزة تثبيت التطبيق على الجوال (PWA)
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  installBtn.hidden = false;
-  installHint.hidden = true;
-});
-
-installBtn.addEventListener("click", async () => {
-  if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    try {
-      await deferredInstallPrompt.userChoice;
-    } catch (_) {}
-    deferredInstallPrompt = null;
-  } else {
-    installHint.hidden = !installHint.hidden;
-  }
-});
-
-window.addEventListener("appinstalled", () => {
-  deferredInstallPrompt = null;
-  installHint.hidden = true;
-  installBtn.textContent = "تم تثبيت التطبيق على جهازك";
-});
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
-  });
-}
