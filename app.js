@@ -7,9 +7,15 @@
   var TOO_BIG = "الملف أكبر من 200 م.ب. قصّره ثم أعد المحاولة.";
   var NO_LIB = "تعذّر تحميل أداة الاستخراج. تأكد من الإنترنت ثم أعد فتح الصفحة.";
 
-  var CDN = "https://cdn.jsdelivr.net/npm/";
-  var MP3_URL = CDN + "@mediabunny/mp3-encoder@1.66.2/dist/bundles/mediabunny-mp3-encoder.min.js";
-  var AAC_URL = CDN + "@mediabunny/aac-encoder@1.66.2/dist/bundles/mediabunny-aac-encoder.min.js";
+  var HOSTS = ["https://cdn.jsdelivr.net/npm/", "https://unpkg.com/", "https://fastly.jsdelivr.net/npm/", "https://gcore.jsdelivr.net/npm/"];
+  function urls(pkg, files) {
+    var out = [];
+    HOSTS.forEach(function (h) { files.forEach(function (f) { out.push(h + pkg + "@1.66.2/dist/bundles/" + f); }); });
+    return out;
+  }
+  var LIB_URLS = urls("mediabunny", ["mediabunny.min.js", "mediabunny.js"]);
+  var MP3_URLS = urls("@mediabunny/mp3-encoder", ["mediabunny-mp3-encoder.min.js", "mediabunny-mp3-encoder.js"]);
+  var AAC_URLS = urls("@mediabunny/aac-encoder", ["mediabunny-aac-encoder.min.js", "mediabunny-aac-encoder.js"]);
 
   var FORMATS = [
     { id: "mp3", label: "MP3", hint: "الأشهر", ext: "mp3" },
@@ -55,18 +61,39 @@
     });
   }
 
+  function loadFirst(list, check) {
+    var i = 0;
+    return new Promise(function (ok, fail) {
+      function next() {
+        if (check()) return ok();
+        if (i >= list.length) return fail(new Error(NO_LIB));
+        loadScript(list[i++]).then(function () { check() ? ok() : next(); }, next);
+      }
+      next();
+    });
+  }
+
+  var libReady = null;
+  function ensureLib() {
+    if (!libReady) {
+      libReady = loadFirst(LIB_URLS, function () { return !!window.Mediabunny; });
+      libReady.catch(function () { libReady = null; });
+    }
+    return libReady;
+  }
+
   var encoders = null;
   function ensureEncoders() {
     if (!encoders) {
       encoders = (async function () {
+        await ensureLib();
         var L = lib();
-        if (!L) throw new Error(NO_LIB);
         if (!(await L.canEncodeAudio("mp3"))) {
-          await loadScript(MP3_URL);
+          await loadFirst(MP3_URLS, function () { return !!window.MediabunnyMp3Encoder; });
           window.MediabunnyMp3Encoder.registerMp3Encoder();
         }
         if (!(await L.canEncodeAudio("aac"))) {
-          await loadScript(AAC_URL);
+          await loadFirst(AAC_URLS, function () { return !!window.MediabunnyAacEncoder; });
           window.MediabunnyAacEncoder.registerAacEncoder();
         }
       })();
@@ -76,8 +103,8 @@
   }
 
   async function probeVideo(file) {
+    await ensureLib();
     var L = lib();
-    if (!L) throw new Error(NO_LIB);
     var input = new L.Input({ source: new L.BlobSource(file), formats: L.ALL_FORMATS });
     try {
       var readable = await input.canRead();
@@ -108,6 +135,7 @@
 
   async function extractAudio(o) {
     if (o.file.size > MAX_BYTES) throw new Error(TOO_BIG);
+    await ensureLib();
     if (o.format !== "wav") await ensureEncoders();
     if (o.signal.aborted) throw new DOMException("Aborted", "AbortError");
     var L = lib();
@@ -356,6 +384,8 @@
   };
   el.seek.oninput = function () { a.currentTime = Number(el.seek.value); el.tNow.textContent = clock(a.currentTime); };
 
-  if (!lib()) { S.error = NO_LIB; }
   render();
+  ensureLib().catch(function () {
+    if (!S.error) { S.error = NO_LIB; render(); }
+  });
 })();
