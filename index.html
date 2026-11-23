@@ -1,53 +1,176 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>مستخرج الصوت من الفيديو</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>نبرة — استخراج وقص الصوت من الفيديو</title>
+  <meta name="description" content="ارفع فيديو، حدد بداية ونهاية المقطع أو قص الصوت بسهولة، واحفظه بصيغة WAV أو MP3 مع إمكانية تثبيت التطبيق على جوالك.">
+  <meta name="theme-color" content="#0e0d0b">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="container">
-    <header class="header">
-      <h1>فصل الصوت عن الفيديو</h1>
-      <p>ارفع ملف الفيديو لاستخراج الصوت مباشرة على جهازك بدون إرسال ملفاتك لأي خادم.</p>
-    </header>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round">
+          <path d="M2 10v3M6 6v11M10 3v18M14 8v8M18 5v14M22 10v3"/>
+        </svg>
+      </span>
+      <div>
+        <p class="name">نبرة</p>
+        <p class="sub">استخراج وقص الصوت</p>
+      </div>
+    </div>
+    <p class="local">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="4" y="11" width="16" height="10" rx="2"/>
+        <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+      </svg>
+      على جهازك
+    </p>
+  </header>
 
-    <section class="card">
-      <label for="videoInput" class="drop-zone" id="dropZone">
-        <input type="file" id="videoInput" accept="video/*" hidden />
-        <div class="drop-content">
-          <span class="icon">🎬</span>
-          <strong id="fileName">اضغط لاختيار فيديو أو اسحبه هنا</strong>
-          <small>يدعم MP4, MOV, MKV, WEBM وغيرها</small>
+  <main>
+    <h1>فصل وقص الصوت من الفيديو</h1>
+    <p class="lead">ارفع ملف الفيديو لاستخراج الصوت مباشرة على جهازك بدون إرسال ملفاتك لأي خادم، مع إمكانية قص الجزء المطلوب.</p>
+
+    <section class="card" id="card">
+      <div class="stage">
+        <div id="placeholder" class="pair">
+          <div class="tile">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M7 3v18M17 3v18M3 8h4M3 12h4M3 16h4M17 8h4M17 12h4M17 16h4"/>
+            </svg>
+            <span class="chip">فيديو</span>
+          </div>
+          <svg class="arrow" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          <div class="tile on">
+            <div class="meter" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <span class="chip gold">صوت</span>
+          </div>
         </div>
-      </label>
 
-      <div class="controls">
-        <div class="control-group">
-          <label for="formatSelect">صيغة الصوت الناتجة:</label>
-          <select id="formatSelect">
-            <option value="wav" selected>WAV (سريع ومباشر بدون مكتبات خارجية)</option>
-            <option value="mp3">MP3 (مضغوط - يستخدم معالجة المتصفح)</option>
-          </select>
-        </div>
-
-        <button id="extractBtn" class="btn primary" disabled>فصل الصوت الآن</button>
+        <label for="videoInput" class="drop-zone" id="dropZone">
+          <input type="file" id="videoInput" accept="video/*,.mkv,.webm,.mov,.mp4,.m4v" hidden />
+          <div class="drop-content">
+            <span class="icon" aria-hidden="true">🎬</span>
+            <strong id="fileName">اضغط لاختيار فيديو أو اسحبه هنا</strong>
+            <small>يدعم MP4, MOV, MKV, WEBM وغيرها</small>
+          </div>
+        </label>
       </div>
 
-      <div id="statusBox" class="status hidden">
-        <div class="progress-bar">
-          <div id="progressFill" class="progress-fill"></div>
-        </div>
-        <p id="statusText">جاري المعالجة...</p>
-      </div>
+      <div class="body">
+        <div id="trimBox" class="trim-box hidden">
+          <div class="trim-head">
+            <p class="label">قص الصوت (اختياري)</p>
+            <span class="trim-badge num" id="trimDurationLabel">المدة المحددة: كامل المقطع</span>
+          </div>
 
-      <div id="resultBox" class="result hidden">
-        <h3>تم استخراج الصوت بنجاح</h3>
-        <audio id="audioPreview" controls></audio>
-        <a id="downloadLink" class="btn success" download="extracted-audio.wav">تحميل ملف الصوت</a>
+          <div class="sliders-wrap" dir="ltr">
+            <div class="range-row">
+              <span class="range-tag">البداية</span>
+              <input type="range" id="startRange" min="0" max="100" step="0.1" value="0" aria-label="نقطة بداية القص" />
+              <span class="range-val num" id="startVal">00:00.0</span>
+            </div>
+            <div class="range-row">
+              <span class="range-tag">النهاية</span>
+              <input type="range" id="endRange" min="0" max="100" step="0.1" value="100" aria-label="نقطة نهاية القص" />
+              <span class="range-val num" id="endVal">00:00.0</span>
+            </div>
+          </div>
+
+          <div class="time-inputs">
+            <div class="time-field">
+              <label for="startInput">بداية القص (ثانية أو mm:ss)</label>
+              <input type="text" id="startInput" class="time-input num" value="00:00.0" inputmode="decimal" />
+            </div>
+            <div class="time-field">
+              <label for="endInput">نهاية القص (ثانية أو mm:ss)</label>
+              <input type="text" id="endInput" class="time-input num" value="00:00.0" inputmode="decimal" />
+            </div>
+          </div>
+
+          <div class="trim-actions">
+            <button type="button" class="btn line small-btn" id="previewTrimBtn">معاينة المقطع المقصوص</button>
+            <button type="button" class="btn text small-btn" id="resetTrimBtn">إعادة ضبط كامل المدة</button>
+          </div>
+
+          <audio id="trimPreviewAudio" class="trim-audio hidden" controls></audio>
+        </div>
+
+        <div class="controls">
+          <div class="control-group">
+            <label for="formatSelect">صيغة الصوت الناتجة:</label>
+            <select id="formatSelect">
+              <option value="wav" selected>WAV (سريع ومباشر بدون مكتبات خارجية)</option>
+              <option value="mp3">MP3 (مضغوط - يستخدم معالجة المتصفح)</option>
+            </select>
+          </div>
+
+          <button id="extractBtn" class="btn" disabled>فصل الصوت الآن</button>
+        </div>
+
+        <div id="statusBox" class="status hidden">
+          <div class="row">
+            <span id="statusText">جاري المعالجة...</span>
+            <span class="muted num" id="pctText">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+          </div>
+        </div>
+
+        <div id="resultBox" class="result hidden">
+          <h3>تم استخراج الصوت بنجاح</h3>
+          <p class="muted small num" id="resultMeta"></p>
+          <div class="player" id="player">
+            <button type="button" class="play" id="playBtn" aria-label="تشغيل الصوت">
+              <svg id="icoPlay" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>
+              <svg id="icoPause" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" hidden><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+            </button>
+            <div class="pcol">
+              <div class="meter" aria-hidden="true">
+                <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <div dir="ltr">
+                <input type="range" id="seek" min="0" max="0" step="0.01" value="0" aria-label="موضع التشغيل">
+                <div class="times num">
+                  <span id="tNow">0:00</span>
+                  <span id="tAll">0:00</span>
+                </div>
+              </div>
+            </div>
+            <audio id="audioPreview" preload="auto"></audio>
+          </div>
+          <a id="downloadLink" class="btn success-btn" download="extracted-audio.wav">تحميل ملف الصوت</a>
+        </div>
       </div>
     </section>
+
+    <ol class="steps">
+      <li><span class="n">1</span><span><b>ارفع الفيديو</b><i>اختر المقطع من هاتفك أو اسحبه إلى البطاقة.</i></span></li>
+      <li><span class="n">2</span><span><b>حدد المقطع والصيغة</b><i>قص البداية والنهاية إن أردت واختر WAV أو MP3.</i></span></li>
+      <li><span class="n">3</span><span><b>استمع واحفظ</b><i>راجع الصوت الناتج ثم نزّله مباشرة على جهازك.</i></span></li>
+    </ol>
+
+    <div class="install-wrap">
+      <button type="button" class="btn line" id="installBtn">ثبّت التطبيق على جوالك</button>
+      <p class="faint small install-hint" id="installHint" hidden>
+        لتثبيت التطبيق على الجوال: افتح قائمة المتصفح (⋮ أو مشاركة) واختر «إضافة إلى الشاشة الرئيسية» أو «تثبيت التطبيق».
+      </p>
+    </div>
 
     <footer class="footer">
       <p>تعمل المعالجة محلياً داخل المتصفح لحماية خصوصيتك وسرعة الأداء.</p>
