@@ -1,0 +1,16 @@
+{
+  "name": "نبرة — استخراج الصوت من الفيديو",
+  "short_name": "نبرة",
+  "description": "ارفع فيديو واحفظ الصوت وحده بصيغة MP3 أو M4A أو WAV.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0e0d0b",
+  "theme_color": "#0e0d0b",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -7,15 +7,21 @@
   var TOO_BIG = "الملف أكبر من 200 م.ب. قصّره ثم أعد المحاولة.";
   var NO_LIB = "تعذّر تحميل أداة الاستخراج. تأكد من الإنترنت ثم أعد فتح الصفحة.";
 
-  var HOSTS = ["https://cdn.jsdelivr.net/npm/", "https://unpkg.com/", "https://fastly.jsdelivr.net/npm/", "https://gcore.jsdelivr.net/npm/"];
-  function urls(pkg, files) {
+  var HOSTS = ["https://cdn.jsdelivr.net/npm/", "https://unpkg.com/"];
+  function urls(pkg, base) {
     var out = [];
-    HOSTS.forEach(function (h) { files.forEach(function (f) { out.push(h + pkg + "@1.66.2/dist/bundles/" + f); }); });
+    HOSTS.forEach(function (h) {
+      ["dist/bundles/", "dist/"].forEach(function (d) {
+        ["cjs", "js", "min.cjs", "min.js"].forEach(function (x) {
+          out.push(h + pkg + "@1.66.2/" + d + base + "." + x);
+        });
+      });
+    });
     return out;
   }
-  var LIB_URLS = urls("mediabunny", ["mediabunny.min.js", "mediabunny.js"]);
-  var MP3_URLS = urls("@mediabunny/mp3-encoder", ["mediabunny-mp3-encoder.min.js", "mediabunny-mp3-encoder.js"]);
-  var AAC_URLS = urls("@mediabunny/aac-encoder", ["mediabunny-aac-encoder.min.js", "mediabunny-aac-encoder.js"]);
+  var LIB_URLS = urls("mediabunny", "mediabunny");
+  var MP3_URLS = urls("@mediabunny/mp3-encoder", "mediabunny-mp3-encoder");
+  var AAC_URLS = urls("@mediabunny/aac-encoder", "mediabunny-aac-encoder");
 
   var FORMATS = [
     { id: "mp3", label: "MP3", hint: "الأشهر", ext: "mp3" },
@@ -383,6 +389,20 @@
     el.seek.max = d; el.tAll.textContent = clock(d);
   };
   el.seek.oninput = function () { a.currentTime = Number(el.seek.value); el.tNow.textContent = clock(a.currentTime); };
+
+  /* تثبيت التطبيق على الجوال */
+  var installBtn = $("installBtn"), deferred = null;
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault(); deferred = e; installBtn.hidden = false;
+  });
+  installBtn.onclick = async function () {
+    if (!deferred) return;
+    deferred.prompt();
+    try { await deferred.userChoice; } catch (e) {}
+    deferred = null; installBtn.hidden = true;
+  };
+  window.addEventListener("appinstalled", function () { installBtn.hidden = true; });
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () {});
 
   render();
   ensureLib().catch(function () {
